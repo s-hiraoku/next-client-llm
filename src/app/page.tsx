@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Result, Answer, Error, Progress } from "../types/result";
+import { Result, Answer, Error, Progress } from "@/types/result";
 
 const Loading = ({ progress }: { progress: number | null }) =>
   progress !== null ? (
@@ -88,7 +88,7 @@ export default function Home() {
         <Loading progress={loadingProgress} />
         <textarea
           className="w-full p-2 border rounded mb-4 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
-          rows={10}
+          rows={20}
           placeholder="Enter context here"
           value={context}
           onChange={(e) => setContext(e.target.value)}
