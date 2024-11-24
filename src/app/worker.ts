@@ -83,9 +83,9 @@ PipelineSingleton.getQuestionAnsweringInstance((progress: number) => {
   .then(() => {
     self.postMessage({ status: "ready" });
   })
-  .catch((error: unknown) => {
+  .catch((error: Error) => {
     self.postMessage({
       status: "error",
-      error: (error as Error).message || "Unknown error during model loading.",
+      error: error.message || "Unknown error during model loading.",
     });
   });
