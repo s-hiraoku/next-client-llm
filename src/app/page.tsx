@@ -3,12 +3,34 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Result, Answer, Error, Progress } from "../types/result";
 
+const Loading = ({ progress }: { progress: number | null }) =>
+  progress !== null ? (
+    <div className="mb-4 text-center">Loading Model... {progress}%</div>
+  ) : null;
+
+const AnswerDisplay = ({ answer, score }: Answer) => (
+  <div className="mt-4 p-4 bg-gray-50 rounded-md dark:bg-gray-700">
+    <h2 className="font-semibold mb-2">Answer:</h2>
+    <p className="mb-2">{answer}</p>
+    <p className="text-sm text-gray-600 dark:text-gray-400">
+      Score: {score.toFixed(2)}
+    </p>
+  </div>
+);
+
+const ErrorDisplay = ({ errorMessage }: Error) => (
+  <div className="text-red-500 dark:text-red-400 mt-4">
+    <h2 className="font-semibold mb-2">Error:</h2>
+    <p className="text-sm">{errorMessage}</p>
+  </div>
+);
+
 export default function Home() {
   const [result, setResult] = useState<Answer | Error | null>(null);
-  const [ready, setReady] = useState<boolean>(false);
+  const [ready, setReady] = useState(false);
   const [loadingProgress, setLoadingProgress] = useState<number | null>(null);
-  const [question, setQuestion] = useState<string>("");
-  const [context, setContext] = useState<string>("");
+  const [question, setQuestion] = useState("");
+  const [context, setContext] = useState("");
 
   const workerRef = useRef<Worker | null>(null);
 
@@ -22,53 +44,33 @@ export default function Home() {
     const onMessageReceived = (
       event: MessageEvent<Result<Answer | Progress, Error>>
     ) => {
-      switch (event.data.status) {
-        case "loading": {
-          const message = event.data.data as Progress;
-          setReady(false);
-          setLoadingProgress(message.progress ?? 0);
-          break;
-        }
-        case "ready": {
-          console.log("Model is ready!");
-          setReady(true);
-          setLoadingProgress(null);
-          break;
-        }
-        case "complete": {
-          const answer = event.data.data as Answer;
-          setResult(answer);
-          break;
-        }
-        case "error": {
-          const error = event.data.error as Error;
-          console.error("Error from worker:", error.errorMessage);
+      const { status, data, error } = event.data;
 
-          setResult(error);
-          break;
-        }
+      if (status === "loading") {
+        setReady(false);
+        setLoadingProgress((data as Progress)?.progress ?? 0);
+      } else if (status === "ready") {
+        setReady(true);
+        setLoadingProgress(null);
+      } else if (status === "complete") {
+        setResult(data as Answer);
+      } else if (status === "error") {
+        console.error("Error from worker:", error?.errorMessage);
+        setResult(error as Error);
       }
     };
 
     workerRef.current.addEventListener("message", onMessageReceived);
 
     return () => {
-      if (workerRef.current) {
-        workerRef.current.removeEventListener("message", onMessageReceived);
-        workerRef.current.terminate();
-        workerRef.current = null;
-      }
+      workerRef.current?.removeEventListener("message", onMessageReceived);
+      workerRef.current?.terminate();
+      workerRef.current = null;
     };
   }, []);
 
   const handleSubmit = useCallback(() => {
     if (workerRef.current && question && context) {
-      if (typeof question !== "string" || typeof context !== "string") {
-        console.error(
-          "Invalid input types: question and context must be strings."
-        );
-        return;
-      }
       workerRef.current.postMessage({ question, context });
       setResult(null);
     }
@@ -81,51 +83,32 @@ export default function Home() {
           Transformer.js QA
         </h1>
         <h2 className="text-2xl mb-4 text-center">
-          Next.js with QuestionAnswering LLM{" "}
+          Next.js with QuestionAnswering LLM
         </h2>
-        {loadingProgress !== null && (
-          <div className="mb-4 flex justify-center">
-            <p>Loading Model... {loadingProgress}%</p>
-          </div>
-        )}
+        <Loading progress={loadingProgress} />
         <textarea
-          className="w-full p-2 border border-gray-300 rounded mb-4 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
-          rows={20}
+          className="w-full p-2 border rounded mb-4 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
+          rows={10}
           placeholder="Enter context here"
           value={context}
           onChange={(e) => setContext(e.target.value)}
         />
         <input
           type="text"
-          className="w-full p-2 border border-gray-300 rounded mb-4 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
+          className="w-full p-2 border rounded mb-4 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
           placeholder="Enter your question here"
           value={question}
-          onChange={(event) => setQuestion(event.target.value)}
+          onChange={(e) => setQuestion(e.target.value)}
         />
-        <div className="flex justify-end">
-          <button
-            className="bg-blue-500 text-white px-4 py-2 rounded mb-4"
-            onClick={handleSubmit}
-            disabled={!ready}
-          >
-            {ready ? "Get Answer" : "Loading..."}
-          </button>
-        </div>
-
-        {result && typeof result === "object" && "answer" in result && (
-          <div className="mt-4 p-4 bg-gray-50 rounded-md dark:bg-gray-700">
-            <h2 className="font-semibold mb-2">Answer:</h2>
-            <p className="mb-2">{result.answer}</p>
-            <p className="text-sm text-gray-600 dark:text-gray-400">
-              score: {result.score.toFixed(2)}
-            </p>
-          </div>
-        )}
-        {result && typeof result === "object" && "errorMessage" in result && (
-          <div className="text-red-500 dark:text-red-400">
-            {result.errorMessage}
-          </div>
-        )}
+        <button
+          className="bg-blue-500 text-white px-4 py-2 rounded mb-4 w-full"
+          onClick={handleSubmit}
+          disabled={!ready}
+        >
+          {ready ? "Get Answer" : "Loading..."}
+        </button>
+        {result && "answer" in result && <AnswerDisplay {...result} />}
+        {result && "errorMessage" in result && <ErrorDisplay {...result} />}
       </div>
     </main>
   );
