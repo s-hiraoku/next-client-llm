@@ -5,7 +5,15 @@ import { Result, Answer, Error, Progress } from "@/src/types/result";
 
 const Loading = ({ progress }: { progress: number | null }) =>
   progress !== null ? (
-    <div className="mb-4 text-center">Loading Model... {progress}%</div>
+    <div className="flex items-center justify-center mb-4">
+      <div className="relative w-full h-4 bg-gray-300 rounded-full overflow-hidden">
+        <div
+          className="absolute top-0 left-0 h-full bg-blue-500 transition-all"
+          style={{ width: `${progress}%` }}
+        ></div>
+      </div>
+      <div className="ml-4">{progress}%</div>
+    </div>
   ) : null;
 
 const AnswerDisplay = ({ answer, score }: Answer) => (
@@ -34,40 +42,55 @@ export default function Home() {
 
   const workerRef = useRef<Worker | null>(null);
 
+  const onMessageReceived = (event: MessageEvent<Result>) => {
+    const { status } = event.data;
+
+    switch (status) {
+      case "loading":
+        setReady(false);
+        setLoadingProgress(event.data.data.progress);
+        break;
+      case "ready":
+        setReady(true);
+        setLoadingProgress(null);
+        break;
+      case "complete":
+        setResult(event.data.data);
+        break;
+      case "error":
+        console.error("Error from worker:", event.data.error.errorMessage);
+        setResult(event.data.error);
+        break;
+    }
+  };
+
+  const initializeWorker = () => {
+    const worker = new Worker(new URL("./worker.ts", import.meta.url), {
+      type: "module",
+    });
+
+    worker.addEventListener("error", (error) => {
+      console.error("Worker error:", error);
+    });
+
+    worker.addEventListener("messageerror", (error) => {
+      console.error("Message error:", error);
+    });
+
+    return worker;
+  };
+
   useEffect(() => {
     if (!workerRef.current) {
-      workerRef.current = new Worker(new URL("./worker.ts", import.meta.url), {
-        type: "module",
-      });
+      workerRef.current = initializeWorker();
     }
 
-    const onMessageReceived = (event: MessageEvent<Result>) => {
-      const { status } = event.data;
-
-      switch (status) {
-        case "loading":
-          setReady(false);
-          setLoadingProgress(event.data.data.progress);
-          break;
-        case "ready":
-          setReady(true);
-          setLoadingProgress(null);
-          break;
-        case "complete":
-          setResult(event.data.data);
-          break;
-        case "error":
-          console.error("Error from worker:", event.data.error.errorMessage);
-          setResult(event.data.error);
-          break;
-      }
-    };
-
-    workerRef.current.addEventListener("message", onMessageReceived);
+    const worker = workerRef.current;
+    worker.addEventListener("message", onMessageReceived);
 
     return () => {
-      workerRef.current?.removeEventListener("message", onMessageReceived);
-      workerRef.current?.terminate();
+      worker?.removeEventListener("message", onMessageReceived);
+      worker?.terminate();
       workerRef.current = null;
     };
   }, []);
