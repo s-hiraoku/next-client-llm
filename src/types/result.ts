@@ -11,8 +11,8 @@ export type Error = {
   errorMessage: string;
 };
 
-export type Result<T, E> = {
-  status: "ready" | "loading" | "complete" | "error";
-  data?: T;
-  error?: E;
-};
+export type Result =
+  | { status: "ready" }
+  | { status: "loading"; data: Progress }
+  | { status: "complete"; data: Answer }
+  | { status: "error"; error: Error };

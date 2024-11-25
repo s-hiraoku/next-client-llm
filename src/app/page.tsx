@@ -41,22 +41,25 @@ export default function Home() {
       });
     }
 
-    const onMessageReceived = (
-      event: MessageEvent<Result<Answer | Progress, Error>>
-    ) => {
-      const { status, data, error } = event.data;
+    const onMessageReceived = (event: MessageEvent<Result>) => {
+      const { status } = event.data;
 
-      if (status === "loading") {
-        setReady(false);
-        setLoadingProgress((data as Progress)?.progress ?? 0);
-      } else if (status === "ready") {
-        setReady(true);
-        setLoadingProgress(null);
-      } else if (status === "complete") {
-        setResult(data as Answer);
-      } else if (status === "error") {
-        console.error("Error from worker:", error?.errorMessage);
-        setResult(error as Error);
+      switch (status) {
+        case "loading":
+          setReady(false);
+          setLoadingProgress(event.data.data.progress);
+          break;
+        case "ready":
+          setReady(true);
+          setLoadingProgress(null);
+          break;
+        case "complete":
+          setResult(event.data.data);
+          break;
+        case "error":
+          console.error("Error from worker:", event.data.error.errorMessage);
+          setResult(event.data.error);
+          break;
       }
     };
 
