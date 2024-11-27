@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Result, Answer, Error, Progress } from "@/src/types/result";
+import { Result, Answer, Error } from "@/src/types/result";
+import { isObject } from "./utils";
 
 const Loading = ({ progress }: { progress: number | null }) =>
   progress !== null ? (
@@ -43,6 +44,7 @@ export default function Home() {
   const workerRef = useRef<Worker | null>(null);
 
   const onMessageReceived = (event: MessageEvent<Result>) => {
+    console.log("🚀 ~ onMessageReceived ~ event:", event);
     const { status } = event.data;
 
     switch (status) {
@@ -58,7 +60,7 @@ export default function Home() {
         setResult(event.data.data);
         break;
       case "error":
-        console.error("Error from worker:", event.data.error.errorMessage);
+        console.error("Error from worker:", event.data.error);
         setResult(event.data.error);
         break;
     }
@@ -133,8 +135,12 @@ export default function Home() {
         >
           {ready ? "Get Answer" : "Loading..."}
         </button>
-        {result && "answer" in result && <AnswerDisplay {...result} />}
-        {result && "errorMessage" in result && <ErrorDisplay {...result} />}
+        {isObject(result) && result && "answer" in result && (
+          <AnswerDisplay {...result} />
+        )}
+        {isObject(result) && result && "errorMessage" in result && (
+          <ErrorDisplay {...result} />
+        )}
       </div>
     </main>
   );
