@@ -2,12 +2,13 @@ import {
   pipeline,
   type PipelineType,
   type QuestionAnsweringPipeline,
+  env,
 } from "@xenova/transformers";
 
 // Singletonクラス
 class PipelineSingleton {
   static task: PipelineType = "question-answering";
-  static model: string = "Xenova/distilbert-base-uncased-distilled-squad";
+  static model = "/onnx_model";
 
   private static qaInstance: QuestionAnsweringPipeline | null = null;
 
@@ -27,6 +28,8 @@ class PipelineSingleton {
     return this.qaInstance;
   }
 }
+
+env.allowLocalModels = true;
 
 // メインスレッドからのメッセージを監視
 self.addEventListener(

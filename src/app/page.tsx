@@ -44,7 +44,6 @@ export default function Home() {
   const workerRef = useRef<Worker | null>(null);
 
   const onMessageReceived = (event: MessageEvent<Result>) => {
-    console.log("🚀 ~ onMessageReceived ~ event:", event);
     const { status } = event.data;
 
     switch (status) {
