@@ -107,7 +107,7 @@ export default function Home() {
     <main className="flex min-h-screen flex-col items-center justify-center p-12 bg-gray-100 dark:bg-gray-900">
       <div className="bg-white dark:bg-gray-800 dark:text-gray-100 shadow-lg rounded-lg p-8 w-full max-w-3xl">
         <h1 className="text-5xl font-bold mb-2 text-center">
-          Transformer.js QA
+          neural model demo
         </h1>
         <h2 className="text-2xl mb-4 text-center">
           Next.js with QuestionAnswering LLM
