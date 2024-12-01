@@ -43,6 +43,7 @@ export default function Home() {
 
   const workerRef = useRef<Worker | null>(null);
 
+  // メッセージの受信
   const onMessageReceived = (event: MessageEvent<Result>) => {
     const { status } = event.data;
 
@@ -65,17 +66,10 @@ export default function Home() {
     }
   };
 
+  // Workerの初期化
   const initializeWorker = () => {
     const worker = new Worker(new URL("./worker.ts", import.meta.url), {
       type: "module",
-    });
-
-    worker.addEventListener("error", (error) => {
-      console.error("Worker error:", error);
-    });
-
-    worker.addEventListener("messageerror", (error) => {
-      console.error("Message error:", error);
     });
 
     return worker;
@@ -87,10 +81,23 @@ export default function Home() {
     }
 
     const worker = workerRef.current;
+
+    // メッセージリスナーの登録
     worker.addEventListener("message", onMessageReceived);
 
+    // エラーリスナーの登録
+    worker.addEventListener("error", (error) => {
+      console.error("Worker error:", error);
+    });
+
     return () => {
+      // リスナーの解除
       worker?.removeEventListener("message", onMessageReceived);
+      worker?.removeEventListener("error", (error) => {
+        console.error("Worker error:", error);
+      });
+
+      // Workerの停止
       worker?.terminate();
       workerRef.current = null;
     };
