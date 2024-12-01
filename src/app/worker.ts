@@ -5,7 +5,7 @@ import {
   env,
 } from "@xenova/transformers";
 
-// Singletonクラス
+// モデルのインスタンス管理用のSingletonクラス
 class PipelineSingleton {
   static task: PipelineType = "question-answering";
   static model = "/onnx_model";
@@ -29,6 +29,7 @@ class PipelineSingleton {
   }
 }
 
+// ローカルのモデルを実行するための設定
 env.allowLocalModels = true;
 
 // メインスレッドからのメッセージを監視
@@ -80,7 +81,7 @@ self.addEventListener(
 PipelineSingleton.getQuestionAnsweringInstance((progress: number) => {
   self.postMessage({
     status: "loading",
-    data: { progress: Math.round(progress) }, // 進捗をパーセントに丸める
+    data: { progress: Math.round(progress) },
   });
 })
   .then(() => {
