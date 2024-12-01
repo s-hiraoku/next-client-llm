@@ -44,7 +44,7 @@ export default function Home() {
   const workerRef = useRef<Worker | null>(null);
 
   // メッセージの受信
-  const onMessageReceived = (event: MessageEvent<Result>) => {
+  const handleMessageReceived = (event: MessageEvent<Result>) => {
     const { status } = event.data;
 
     switch (status) {
@@ -66,6 +66,13 @@ export default function Home() {
     }
   };
 
+  const handleWorkerError = (error: ErrorEvent) => {
+    console.error("Worker error:", error.message);
+  };
+  const handleWorkerMessageError = (event: MessageEvent) => {
+    console.error("Worker message error:", event.data);
+  };
+
   // Workerの初期化
   const initializeWorker = () => {
     const worker = new Worker(new URL("./worker.ts", import.meta.url), {
@@ -83,19 +90,17 @@ export default function Home() {
     const worker = workerRef.current;
 
     // メッセージリスナーの登録
-    worker.addEventListener("message", onMessageReceived);
+    worker.addEventListener("message", handleMessageReceived);
 
     // エラーリスナーの登録
-    worker.addEventListener("error", (error) => {
-      console.error("Worker error:", error);
-    });
+    worker.addEventListener("error", handleWorkerError);
+    worker.addEventListener("messageerror", handleWorkerMessageError);
 
     return () => {
       // リスナーの解除
-      worker?.removeEventListener("message", onMessageReceived);
-      worker?.removeEventListener("error", (error) => {
-        console.error("Worker error:", error);
-      });
+      worker?.removeEventListener("message", handleMessageReceived);
+      worker?.removeEventListener("error", handleWorkerError);
+      worker?.removeEventListener("messageerror", handleWorkerMessageError);
 
       // Workerの停止
       worker?.terminate();

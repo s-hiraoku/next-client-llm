@@ -77,6 +77,23 @@ self.addEventListener(
   }
 );
 
+// エラーリスナー
+self.addEventListener("error", (event) => {
+  console.error("Worker internal error:", event.message);
+  self.postMessage({
+    status: "error",
+    error: { errorMessage: `Internal Worker error: ${event.message}` },
+  });
+});
+
+self.addEventListener("messageerror", (event) => {
+  console.error("Worker message error:", event.data);
+  self.postMessage({
+    status: "error",
+    error: { errorMessage: `Invalid message: ${event.data}` },
+  });
+});
+
 // パイプラインを事前ロード
 PipelineSingleton.getQuestionAnsweringInstance((progress: number) => {
   self.postMessage({
