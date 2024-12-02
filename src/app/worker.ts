@@ -2,11 +2,14 @@ import {
   pipeline,
   type PipelineType,
   type QuestionAnsweringPipeline,
+  type QuestionAnsweringOutput,
   env,
 } from "@xenova/transformers";
+import { Answer, WorkerMessage, WorkerRequest } from "@/src/types/worker";
 
 // モデルのインスタンス管理用のSingletonクラス
 class PipelineSingleton {
+  // タスクとモデルの設定
   static task: PipelineType = "question-answering";
   static model = "/onnx_model";
 
@@ -29,53 +32,76 @@ class PipelineSingleton {
   }
 }
 
+const convertResult = (
+  output: QuestionAnsweringOutput | QuestionAnsweringOutput[]
+): Answer => {
+  let combinedAnswer: Answer;
+  if (Array.isArray(output)) {
+    // 暫定処理: 複数の回答が帰ってきた場合を結果を結合
+    const combinedText = output.map((o) => o.answer).join(" ");
+    const finalScore = output[output.length - 1].score;
+    combinedAnswer = { answer: combinedText, score: finalScore };
+    return combinedAnswer;
+  }
+  const answer: Answer = {
+    answer: output.answer,
+    score: output.score,
+  };
+  return answer;
+};
+
 // ローカルのモデルを実行するための設定
 env.allowLocalModels = true;
 
 // メインスレッドからのメッセージを監視
-self.addEventListener(
-  "message",
-  async (event: MessageEvent<{ question: string; context: string }>) => {
-    const { question, context } = event.data;
+self.addEventListener("message", async (event: MessageEvent<WorkerRequest>) => {
+  const { question, context } = event.data;
 
-    if (!question || !context) {
-      self.postMessage({
-        status: "error",
-        error: 'Both "question" and "context" must be provided.',
-      });
-      return;
-    }
-
-    try {
-      // QAパイプラインを取得
-      const qaPipeline = await PipelineSingleton.getQuestionAnsweringInstance(
-        (progress: number) => {
-          self.postMessage({
-            status: "loading",
-            data: { progress: Math.round(progress) }, // 進捗をパーセントに丸める
-          });
-        }
-      );
-
-      // 質問応答タスクを実行
-      const output = await qaPipeline(question, context);
-
-      // 出力をメインスレッドに送信
-      self.postMessage({
-        status: "complete",
-        data: output,
-      });
-    } catch (error: unknown) {
-      self.postMessage({
-        status: "error",
-        error: {
-          errorMessage:
-            (error as Error).message || "An unknown error occurred.",
-        },
-      });
-    }
+  if (!question || !context) {
+    const errorMessage: WorkerMessage = {
+      status: "error",
+      error: {
+        errorMessage: 'Both "question" and "context" must be provided.',
+      },
+    };
+    self.postMessage(errorMessage);
+    return;
   }
-);
+
+  try {
+    // QAパイプラインを取得
+    const qaPipeline = await PipelineSingleton.getQuestionAnsweringInstance(
+      (progress: number) => {
+        const progressMessage: WorkerMessage = {
+          status: "loading",
+          data: { progress: Math.round(progress) },
+        };
+        self.postMessage(progressMessage);
+      }
+    );
+
+    // 質問応答タスクを実行
+    const output = await qaPipeline(question, context);
+
+    // outputが配列かどうかをチェックし、すべての回答を処理
+    const answer = convertResult(output);
+
+    // 出力をメインスレッドに送信
+    const resultMessage: WorkerMessage = {
+      status: "complete",
+      data: answer,
+    };
+    self.postMessage(resultMessage);
+  } catch (error: unknown) {
+    const errorMessage: WorkerMessage = {
+      status: "error",
+      error: {
+        errorMessage: (error as Error).message || "An unknown error occurred.",
+      },
+    };
+    self.postMessage(errorMessage);
+  }
+});
 
 // エラーリスナー
 self.addEventListener("error", (event) => {
