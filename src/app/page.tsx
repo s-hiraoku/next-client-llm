@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Result, Answer, Error } from "@/src/types/result";
+import { Result, Answer, Error } from "@/src/types/worker";
 import { isObject } from "./utils";
 
 const Loading = ({ progress }: { progress: number | null }) =>
