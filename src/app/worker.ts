@@ -16,13 +16,13 @@ class PipelineSingleton {
   private static qaInstance: QuestionAnsweringPipeline | null = null;
 
   static async getQuestionAnsweringInstance(
-    progressCallback: (progress: number) => void
+    progressCallback?: (progress: number) => void
   ): Promise<QuestionAnsweringPipeline> {
     if (!this.qaInstance) {
       const modelInstance = await pipeline(this.task, this.model, {
         progress_callback: (progress: { progress: number }) => {
           if (progress && typeof progress.progress === "number") {
-            progressCallback(progress.progress);
+            progressCallback?.(progress.progress);
           }
         },
       });
@@ -69,16 +69,8 @@ self.addEventListener("message", async (event: MessageEvent<WorkerRequest>) => {
   }
 
   try {
-    // QAパイプラインを取得
-    const qaPipeline = await PipelineSingleton.getQuestionAnsweringInstance(
-      (progress: number) => {
-        const progressMessage: WorkerMessage = {
-          status: "loading",
-          data: { progress: Math.round(progress) },
-        };
-        self.postMessage(progressMessage);
-      }
-    );
+    // QAパイプラインのインスタンスを取得
+    const qaPipeline = await PipelineSingleton.getQuestionAnsweringInstance();
 
     // 質問応答タスクを実行
     const output = await qaPipeline(question, context);
