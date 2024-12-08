@@ -121,9 +121,7 @@ export default function Home() {
         <h1 className="text-5xl font-bold mb-2 text-center">
           Question Answering
         </h1>
-        <h2 className="text-2xl mb-4 text-center">
-          Next.js with QuestionAnswering model
-        </h2>
+        <h2 className="text-2xl mb-4 text-center">Next.js ☓ Transformers.js</h2>
         <Loading progress={loadingProgress} />
         <textarea
           className="w-full p-2 border rounded mb-4 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100"
