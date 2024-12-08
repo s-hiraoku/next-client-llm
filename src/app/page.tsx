@@ -122,7 +122,7 @@ export default function Home() {
           Question Answering
         </h1>
         <h2 className="text-2xl mb-4 text-center">
-          Next.js with QuestionAnswering LLM
+          Next.js with QuestionAnswering model
         </h2>
         <Loading progress={loadingProgress} />
         <textarea
